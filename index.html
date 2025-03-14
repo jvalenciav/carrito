@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pet Store</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+  <style>
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #4CAF50;
+      color: white;
+      padding: 16px;
+      border-radius: 5px;
+      z-index: 1000;
+      display: none;
+    }
+    .toast.error {
+      background-color: #f44336;
+    }
+    #cart-modal {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 350px;
+      height: 100vh;
+      background: white;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      transform: translateX(100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    #cart-modal.open {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <header class="flex justify-between items-center p-4 bg-white shadow-md">
+    <img alt="UTVT Logo" class="h-12" src="https://seeklogo.com/images/U/universidad-tecnologica-del-valle-de-toluca-logo-82F16BF313-seeklogo.com.png">
+    <div class="text-2xl relative">
+      <i class="fas fa-shopping-cart cursor-pointer" id="cart-icon"></i>
+      <span class="bg-red-500 text-white text-xs rounded-full px-2 py-1 absolute -top-2 -right-2" id="cart-count">0</span>
+    </div>
+  </header>
+
+  <section class="relative">
+    <img class="w-full h-96 object-cover" src="https://www.zooplus.es/magazine/wp-content/uploads/2019/10/Perros-y-gatos-juntos.jpeg" alt="Pets">
+    <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+      <h1 class="text-4xl font-bold">Consiente a tu mascota</h1>
+      <p class="text-xl">Los mejores productos para su bienestar</p>
+      
+    </div>
+  </section>
+  
+  <div class="container mx-auto py-4 flex justify-center">
+    <input type="text" id="search-input" placeholder="Buscar productos..." class="p-2 border rounded-l-lg">
+    <button id="search-button" class="bg-blue-500 text-white px-4 rounded-r-lg">Buscar</button>
+  </div>
+
+  <main class="container mx-auto py-8">
+    <h2 class="text-3xl font-bold text-center">Productos Destacados</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="product-list"></div>
+  </main>
+
+  <div id="cart-modal" class="fixed top-0 right-0 bg-white shadow-lg p-4">
+    <h2 class="text-xl font-bold">Carrito de Compras</h2>
+    <div id="cart-items" class="my-4"></div>
+    <p class="text-lg font-semibold">Total: $<span id="cart-total">0</span></p>
+    <button id="checkout" class="bg-green-500 text-white px-4 py-2 mt-2 w-full rounded">Pagar</button>
+    <button id="close-cart" class="bg-gray-500 text-white px-4 py-2 mt-2 w-full rounded">Cerrar</button>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const products = [
+      { id: 1, name: "Comida Premium", image: "https://safiri.mx/wp-content/uploads/2014/12/npc-cachorro-raza-pequena-empaques-800x648.jpg", price: 20 },
+      { id: 2, name: "Juguete Masticable", image: "https://hagalo.mx/42779-large_default/juguete-para-perro-hueso-no-43037.jpg", price: 10 },
+      { id: 3, name: "Cama para Gato", image: "https://i5.walmartimages.com/asr/aa8208c0-c360-4b70-a7ec-105235834a9c.170460b26e989ee004905ac2f607ff83.jpeg", price: 30 },
+      { id: 4, name: "Rascador para Gatos", image: "https://m.media-amazon.com/images/I/81davWxhSXL._AC_UF1000,1000_QL80_.jpg", price: 25 },
+      { id: 5, name: "Arena para Gatos", image: "https://cdn.homedepot.com.mx/productos/195887/195887-d.jpg", price: 15 },
+      { id: 6, name: "Comedero Automático", image: "https://m.media-amazon.com/images/I/71fB1bLgH+L._AC_UF1000,1000_QL80_.jpg", price: 40 },
+      { id: 7, name: "Casita para Perro", image: "https://m.media-amazon.com/images/I/71VlhidQZgL.jpg", price: 50 },
+      { id: 8, name: "Correa Retráctil", image: "https://m.media-amazon.com/images/I/61YoofTBjqL._AC_UF1000,1000_QL80_.jpg", price: 20 }
+    ];
+
+    let cart = [];
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = isError ? 'toast error' : 'toast';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    function renderProducts() {
+      const productList = document.getElementById('product-list');
+      productList.innerHTML = '';
+      products.forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = 'bg-white p-4 rounded-lg shadow-md';
+        productCard.innerHTML = `
+          <img class="w-full h-48 object-cover rounded-t-lg" src="${product.image}">
+          <h2 class="text-lg font-semibold">${product.name}</h2>
+          <span class="text-lg font-bold">$${product.price}</span>
+          <button class="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg add-to-cart" data-id="${product.id}">Agregar al carrito</button>
+        `;
+        productList.appendChild(productCard);
+      });
+    }
+
+    function updateCart() {
+      const cartItems = document.getElementById('cart-items');
+      const cartTotal = document.getElementById('cart-total');
+      cartItems.innerHTML = '';
+      let total = 0;
+      cart.forEach((product, index) => {
+        total += product.price;
+        const cartItem = document.createElement('div');
+        cartItem.className = 'flex justify-between items-center p-2 border-b';
+        cartItem.innerHTML = `
+          <img src="${product.image}" class="w-12 h-12 rounded mr-2">
+          <span>${product.name} - $${product.price}</span>
+          <button class="text-red-500" onclick="removeFromCart(${index})">✖</button>
+        `;
+        cartItems.appendChild(cartItem);
+      });
+      cartTotal.textContent = total;
+      document.getElementById('cart-count').textContent = cart.length;
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      showToast("Producto eliminado", true);
+      updateCart();
+    }
+
+    document.addEventListener('click', (event) => {
+      if (event.target.classList.contains('add-to-cart')) {
+        const productId = parseInt(event.target.getAttribute('data-id'));
+        const product = products.find(p => p.id === productId);
+        cart.push(product);
+        showToast(`${product.name} agregado al carrito`);
+        updateCart();
+      }
+    });
+
+    document.getElementById('cart-icon').addEventListener('click', () => {
+      document.getElementById('cart-modal').classList.add('open');
+    });
+
+    document.getElementById('close-cart').addEventListener('click', () => {
+      document.getElementById('cart-modal').classList.remove('open');
+    });
+
+    document.getElementById('checkout').addEventListener('click', () => {
+      showToast("Compra exitosa");
+      cart = [];
+      updateCart();
+    });
+    
+
+    renderProducts();
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = isError ? 'toast error' : 'toast';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    function renderProducts(productList = products) {
+      const productContainer = document.getElementById('product-list');
+      productContainer.innerHTML = '';
+      productList.forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = 'bg-white p-4 rounded-lg shadow-md';
+        productCard.innerHTML = `
+          <img class="w-full h-48 object-cover rounded-t-lg" src="${product.image}">
+          <h2 class="text-lg font-semibold">${product.name}</h2>
+          <span class="text-lg font-bold">$${product.price}</span>
+          <button class="mt-4 w-full bg-blue-500 text-white py-2 rounded-lg add-to-cart" data-id="${product.id}">Agregar al carrito</button>
+        `;
+        productContainer.appendChild(productCard);
+      });
+    }
+
+    document.getElementById('search-button').addEventListener('click', () => {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const filteredProducts = products.filter(p => p.name.toLowerCase().includes(query));
+      renderProducts(filteredProducts);
+    });
+
+    document.getElementById('search-input').addEventListener('input', () => {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const filteredProducts = products.filter(p => p.name.toLowerCase().includes(query));
+      renderProducts(filteredProducts);
+    });
+
+    document.addEventListener('click', (event) => {
+      if (event.target.classList.contains('add-to-cart')) {
+        const productId = parseInt(event.target.getAttribute('data-id'));
+        const product = products.find(p => p.id === productId);
+        cart.push(product);
+        showToast(`${product.name} agregado al carrito`);
+      }
+    });
+
+    renderProducts();
+  </script>
+</body>
+</html>
