@@ -203,14 +203,7 @@
       renderProducts(filteredProducts);
     });
 
-    document.addEventListener('click', (event) => {
-      if (event.target.classList.contains('add-to-cart')) {
-        const productId = parseInt(event.target.getAttribute('data-id'));
-        const product = products.find(p => p.id === productId);
-        cart.push(product);
-        showToast(`${product.name} agregado al carrito`);
-      }
-    });
+    
 
     renderProducts();
   </script>
